@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Studio Dashboard</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Set Inter as the default font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom styles for a cleaner file input */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-input-label {
+            cursor: pointer;
+        }
+
+        /* Hide content sections by default */
+        .content-section {
+            display: none;
+        }
+        /* Show the active content section */
+        .content-section.active {
+            display: block;
+        }
+
+        /* Sidebar transition */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        /* Backdrop transition */
+        #sidebar-backdrop {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a8a8a8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748; /* dark:gray-800 */
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* dark:gray-600 */
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* dark:gray-500 */
+        }
+    </style>
+    <!-- Configure Tailwind for dark mode -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased">
+
+    <!-- Root container -->
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- Sidebar Backdrop (for mobile) -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden hidden" aria-hidden="true"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class
+="fixed inset-y-0 left-0 z-30 flex flex-col w-64 h-full bg-white dark:bg-gray-800 shadow-xl transform -translate-x-full md:translate-x-0"
+            aria-label="Sidebar">
+            
+            <!-- Sidebar Header -->
+            <div class="flex items-center justify-between h-16 px-4 shrink-0 border-b dark:border-gray-700">
+                <a href="#dashboard" class="flex items-center gap-2 text-xl font-bold text-blue-600 dark:text-blue-400">
+                    <!-- Logo Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3c-1.2 0-2.4.6-3 1.7A3.4 3.4 0 0 0 6 6.3c0 1.1.4 2.2 1.2 3C8 10.2 9 11 9 12.3V13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-.7c0-1.2 1-2 1.8-2.8.8-.7 1.2-1.8 1.2-3a3.4 3.4 0 0 0-3-4.6c-.6-1-1.8-1.7-3-1.7Z"/>
+                        <path d="M12 14v.9c0 1.6-.7 3.2-2 4.2C8.8 20 7.2 21 5.5 21H5a2 2 0 0 1-2-2v-1.4c0-1.4.9-2.7 2.2-3.3l1-.5"/>
+                        <path d="m12 14 .1.9c0 1.6.7 3.2 2 4.2 1.2 1 2.8 1.9 4.5 1.9H19a2 2 0 0 0 2-2v-1.4c0-1.4-.9-2.7-2.2-3.3l-1-.5"/>
+                    </svg>
+                    <span>AI Studio</span>
+                </a>
+                <!-- Mobile close button -->
+                <button id="close-sidebar-btn" class="md:hidden p-1 text-gray-500 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                    aria-label="Close sidebar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+                <a href="#dashboard" class="nav-link flex items-center px-3 py-2.5 rounded-md font-medium text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                        <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="#text-to-image" class="nav-link flex items-center px-3 py-2.5 rounded-md font-medium text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/><path d="M14.5 9.5a1 1 0 0 1-1 1H12v1.5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1h1.5a1 1 0 0 1 1 1v0z"/>
+                    </svg>
+                    Text to Image
+                </a>
+                <a href="#bg-remove" class="nav-link flex items-center px-3 py-2.5 rounded-md font-medium text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                        <path d="M5 12V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v8"/><path d="M3 21h18"/><path d="M7 12v2a5 5 0 0 0 10 0v-2"/>
+                    </svg>
+                    Background Remove
+                </a>
+                <a href="#bg-change" class="nav-link flex items-center px-3 py-2.5 rounded-md font-medium text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                        <path d="m2 12 1.6-1.6a1 1 0 0 1 1.4 0L8 14l-4.6-4.6a1 1 0 0 1 0-1.4L7 4"/><path d="m14 10 3.4-3.4a1 1 0 0 1 1.4 0L22 10"/><path d="m18 14 2.6-2.6a1 1 0 0 0 0-1.4L17 6"/><path d="M2 18h1.4c.8 0 1.5.7 1.5 1.5v0c0 .8.7 1.5 1.5 1.5H8"/><path d="M22 18h-1.4c-.8 0-1.5.7-1.5 1.5v0c0 .8-.7 1.5-1.5 1.5H16"/>
+                    </svg>
+                    Background Change
+                </a>
+                <a href="#history" class="nav-link flex items-center px-3 py-2.5 rounded-md font-medium text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                        <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
+                    </svg>
+                    History
+                </a>
+            </nav>
+
+            <!-- Sidebar Footer (Profile) -->
+            <div class="p-4 border-t dark:border-gray-700">
+                <div class="relative" id="profile-dropdown-container">
+                    <button id="profile-dropdown-btn"
+                        class="flex items-center w-full p-2 text-left rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <img class="w-10 h-10 rounded-full shrink-0"
+                            src="https://placehold.co/80x80/E2E8F0/4A5568?text=AV" alt="User avatar"
+                            onerror="this.src='https://placehold.co/80x80/E2E8F0/4A5568?text=AV'; this.onerror=null;">
+                        <div class="ml-3">
+                            <p class="text-sm font-semibold">Jane Doe</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Credits: <span class="font-bold text-gray-700 dark:text-gray-200">10</span></p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-auto text-gray-500 dark:text-gray-400">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div id="profile-dropdown-menu"
+                        class="absolute left-0 right-0 w-full mb-2 -mt-2 space-y-1 origin-bottom-left bg-white border dark:border-gray-700 rounded-md shadow-lg bottom-full dark:bg-gray-800 hidden"
+                        role="menu">
+                        <a href="#profile"
+                            class="nav-link flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                            role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Profile
+                        </a>
+                        <a href="#"
+                            class="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                            role="menuitem">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="flex flex-col flex-1 h-screen overflow-hidden md:ml-64">
+
+            <!-- Top Header -->
+            <header class="flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 md:px-8 shrink-0">
+                <!-- Mobile menu button -->
+                <button id="open-sidebar-btn" class="p-1 text-gray-500 dark:text-gray-400 rounded-md md:hidden hover:bg-gray-100 dark:hover:bg-gray-700"
+                    aria-label="Open sidebar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                
+                <!-- Page Title (Desktop) -->
+                <h1 id="page-title" class="hidden text-2xl font-semibold md:block">
+                    Dashboard
+                </h1>
+
+                <!-- Header Actions (Theme Toggle, Profile) -->
+                <div class="flex items-center gap-4 ml-auto">
+                    <!-- Theme Toggle Button -->
+                    <button id="theme-toggle"
+                        class="p-2 text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden">
+                            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span class="sr-only">Toggle theme</span>
+                    </button>
+                    
+                    <!-- Credits (Mobile) -->
+                    <div class="md:hidden">
+                        <p class="text-sm font-semibold text-blue-600 dark:text-blue-400">Credits: 10</p>
+                    </div>
+
+                    <!-- Profile (Mobile) -->
+                    <div class="md:hidden">
+                        <img class="w-8 h-8 rounded-full"
+                            src="https://placehold.co/80x80/E2E8F0/4A5568?text=AV" alt="User avatar"
+                            onerror="this.src='https://placehold.co/80x80/E2E8F0/4A5568?text=AV'; this.onerror=null;">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 p-4 overflow-y-auto md:p-8">
+                
+                <!-- ======================= -->
+                <!--    Dashboard Page       -->
+                <!-- ======================= -->
+                <section id="page-dashboard" class="content-section">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <!-- Stat Card 1 -->
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Generations</p>
+                                    <p class="text-3xl font-bold">42</p>
+                                </div>
+                                <div class="p-3 text-blue-600 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 3c-1.2 0-2.4.6-3 1.7A3.4 3.4 0 0 0 6 6.3c0 1.1.4 2.2 1.2 3C8 10.2 9 11 9 12.3V13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-.7c0-1.2 1-2 1.8-2.8.8-.7 1.2-1.8 1.2-3a3.4 3.4 0 0 0-3-4.6c-.6-1-1.8-1.7-3-1.7Z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Stat Card 2 -->
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Credits Remaining</p>
+                                    <p class="text-3xl font-bold">10</p>
+                                </div>
+                                <div class="p-3 text-green-600 bg-green-100 dark:bg-green-900/50 dark:text-green-300 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 12V8H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4Z"/><path d="M4 12v4h16v-4Z"/><path d="M18 12a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2Z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Stat Card 3 -->
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Images Stored</p>
+                                    <p class="text-3xl font-bold">128</p>
+                                </div>
+                                <div class="p-3 text-purple-600 bg-purple-100 dark:bg-purple-900/50 dark:text-purple-300 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================= -->
+                <!--   Text to Image Page    -->
+                <!-- ======================= -->
+                <section id="page-text-to-image" class="content-section">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <h2 class="text-xl font-semibold mb-4">Text to Image</h2>
+                            <div class="space-y-4">
+                                <textarea id="prompt-input" rows="3"
+                                    class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    placeholder="Enter your prompt... e.g., 'A cute cat wearing a tiny astronaut helmet'"></textarea>
+                                
+                                <button id="generate-btn"
+                                    class="flex items-center justify-center w-full px-4 py-2.5 font-semibold text-white bg-blue-600 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                        <path d="M12 3c-1.2 0-2.4.6-3 1.7A3.4 3.4 0 0 0 6 6.3c0 1.1.4 2.2 1.2 3C8 10.2 9 11 9 12.3V13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-.7c0-1.2 1-2 1.8-2.8.8-.7 1.2-1.8 1.2-3a3.4 3.4 0 0 0-3-4.6c-.6-1-1.8-1.7-3-1.7Z"/>
+                                    </svg>
+                                    Generate Image
+                                </button>
+
+                                <div id="image-preview-container" class="mt-6">
+                                    <div id="image-loader" class="flex-col items-center justify-center p-12 text-center text-gray-500 border-2 border-dashed rounded-md dark:border-gray-600 hidden">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin text-blue-500">
+                                            <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                        </svg>
+                                        <p class="mt-4 font-medium">Generating your image...</p>
+                                    </div>
+                                    <div id="image-result" class="hidden">
+                                        <img id="generated-image" src="" alt="Generated image" class="w-full rounded-md shadow-md">
+                                        <button id="download-btn"
+                                            class="flex items-center justify-center w-full px-4 py-2.5 mt-4 font-semibold text-white bg-green-600 rounded-md shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                            Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================= -->
+                <!--  Background Remove Page -->
+                <!-- ======================= -->
+                <section id="page-bg-remove" class="content-section">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <h2 class="text-xl font-semibold mb-4">Background Remove</h2>
+                            
+                            <div class="mb-6 file-input-wrapper w-full">
+                                <label for="bg-remove-upload"
+                                    class="file-input-label flex flex-col items-center justify-center w-full h-48 px-4 py-6 text-center bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 border-dashed rounded-md dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    <span class="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">Click to upload image</span>
+                                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="bg-remove-filename">PNG, JPG, or WEBP</span>
+                                </label>
+                                <input type="file" id="bg-remove-upload" class="hidden" accept="image/*">
+                            </div>
+                            
+                            <button id="bg-remove-btn"
+                                class="flex items-center justify-center w-full px-4 py-2.5 font-semibold text-white bg-blue-600 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                    <path d="M5 12V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v8"/><path d="M3 21h18"/><path d="M7 12v2a5 5 0 0 0 10 0v-2"/>
+                                </svg>
+                                Remove Background
+                            </button>
+
+                            <div id="bg-remove-preview" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 hidden">
+                                <div>
+                                    <h3 class="text-lg font-medium mb-2">Original</h3>
+                                    <img id="bg-remove-original" src="" alt="Original" class="w-full rounded-md shadow-md">
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-medium mb-2">Background Removed</h3>
+                                    <div id="bg-remove-result-loader" class="flex items-center justify-center w-full h-full bg-gray-100 dark:bg-gray-700 rounded-md shadow-md min-h-[200px]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin text-blue-500">
+                                            <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                        </svg>
+                                    </div>
+                                    <img id="bg-remove-result" src="" alt="Background removed" class="w-full rounded-md shadow-md hidden"
+                                        style="background-image: repeating-conic-gradient(#cbd5e1 0 25%, transparent 0 50%); background-size: 16px 16px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================= -->
+                <!--  Background Change Page -->
+                <!-- ======================= -->
+                <section id="page-bg-change" class="content-section">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <h2 class="text-xl font-semibold mb-4">Background Change</h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <!-- Original Image Upload -->
+                                <div class="file-input-wrapper w-full">
+                                    <label for="bg-change-upload-orig" class="file-input-label flex flex-col items-center justify-center w-full h-40 px-4 py-6 text-center bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 border-dashed rounded-md dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                        <span class="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">Upload Original Image</span>
+                                        <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="bg-change-filename-orig">PNG, JPG, etc.</span>
+                                    </label>
+                                    <input type="file" id="bg-change-upload-orig" class="hidden" accept="image/*">
+                                </div>
+                                <!-- New Background Upload -->
+                                <div class="file-input-wrapper w-full">
+                                    <label for="bg-change-upload-new" class="file-input-label flex flex-col items-center justify-center w-full h-40 px-4 py-6 text-center bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 border-dashed rounded-md dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="m2 12 1.6-1.6a1 1 0 0 1 1.4 0L8 14l-4.6-4.6a1 1 0 0 1 0-1.4L7 4"/><path d="m14 10 3.4-3.4a1 1 0 0 1 1.4 0L22 10"/></svg>
+                                        <span class="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">Upload New Background</span>
+                                        <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="bg-change-filename-new">Or enter prompt below</span>
+                                    </label>
+                                    <input type="file" id="bg-change-upload-new" class="hidden" accept="image/*">
+                                </div>
+                            </div>
+                            
+                            <button id="bg-change-btn"
+                                class="flex items-center justify-center w-full px-4 py-2.5 font-semibold text-white bg-blue-600 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                                    <path d="m2 12 1.6-1.6a1 1 0 0 1 1.4 0L8 14l-4.6-4.6a1 1 0 0 1 0-1.4L7 4"/><path d="m14 10 3.4-3.4a1 1 0 0 1 1.4 0L22 10"/><path d="m18 14 2.6-2.6a1 1 0 0 0 0-1.4L17 6"/><path d="M2 18h1.4c.8 0 1.5.7 1.5 1.5v0c0 .8.7 1.5 1.5 1.5H8"/><path d="M22 18h-1.4c-.8 0-1.5.7-1.5 1.5v0c0 .8-.7 1.5-1.5 1.5H16"/>
+                                </svg>
+                                Change Background
+                            </button>
+
+                            <div id="bg-change-preview" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 hidden">
+                                <div>
+                                    <h3 class="text-lg font-medium mb-2">Original</h3>
+                                    <img id="bg-change-original" src="" alt="Original" class="w-full rounded-md shadow-md">
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-medium mb-2">Background Changed</h3>
+                                    <div id="bg-change-result-loader" class="flex items-center justify-center w-full h-full bg-gray-100 dark:bg-gray-700 rounded-md shadow-md min-h-[200px]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin text-blue-500">
+                                            <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                        </svg>
+                                    </div>
+                                    <img id="bg-change-result" src="" alt="Background changed" class="w-full rounded-md shadow-md hidden">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================= -->
+                <!--       History Page      -->
+                <!-- ======================= -->
+                <section id="page-history" class="content-section">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <div class="p-6 border-b dark:border-gray-700">
+                                <h2 class="text-xl font-semibold">Generation History</h2>
+                            </div>
+                            <ul class="divide-y dark:divide-gray-700">
+                                <!-- History Item 1 -->
+                                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://placehold.co/64x64/E2E8F0/4A5568?text=Img" alt="Thumbnail" class="w-16 h-16 rounded-md object-cover"
+                                            onerror="this.src='https://placehold.co/64x64/E2E8F0/4A5568?text=Img'; this.onerror=null;">
+                                        <div>
+                                            <p class="text-sm font-semibold">Text to Image</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Oct 24, 2025, 3:45 PM</p>
+                                        </div>
+                                    </div>
+                                    <button class="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 rounded-full bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50">
+                                        View
+                                    </button>
+                                </li>
+                                <!-- History Item 2 -->
+                                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://placehold.co/64x64/CBD5E0/4A5568?text=Img" alt="Thumbnail" class="w-16 h-16 rounded-md object-cover"
+                                            onerror="this.src='https://placehold.co/64x64/CBD5E0/4A5568?text=Img'; this.onerror=null;">
+                                        <div>
+                                            <p class="text-sm font-semibold">Background Remove</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Oct 24, 2025, 1:22 PM</p>
+                                        </div>
+                                    </div>
+                                    <button class="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 rounded-full bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50">
+                                        View
+                                    </button>
+                                </li>
+                                <!-- History Item 3 -->
+                                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://placehold.co/64x64/A0AEC0/4A5568?text=Img" alt="Thumbnail" class="w-16 h-16 rounded-md object-cover"
+                                            onerror="this.src='https://placehold.co/64x64/A0AEC0/4A5568?text=Img'; this.onerror=null;">
+                                        <div>
+                                            <p class="text-sm font-semibold">Background Change</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Oct 23, 2025, 9:10 AM</p>
+                                        </div>
+                                    </div>
+                                    <button class="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 rounded-full bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50">
+                                        View
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================= -->
+                <!--       Profile Page      -->
+                <!-- ======================= -->
+                <section id="page-profile" class="content-section">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                            <h2 class="text-xl font-semibold mb-6">Profile & Settings</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                                    <input type="email" id="email" value="jane.doe@example.com"
+                                        class="w-full p-2 mt-1 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        disabled>
+                                </div>
+                                <div>
+                                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                                    <input type="text" id="name" value="Jane Doe"
+                                        class="w-full p-2 mt-1 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                </div>
+                                <button
+                                    class="px-4 py-2.5 font-semibold text-white bg-blue-600 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    Save Changes
+                                </button>
+                            </div>
+
+                            <hr class="my-8 dark:border-gray-700">
+
+                            <div>
+                                <h3 class="text-lg font-medium mb-4">Manage Subscription</h3>
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 rounded-lg flex items-center justify-between">
+                                    <div>
+                                        <p class="font-semibold">Pro Plan</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-300">1000 credits / month</p>
+                                    </div>
+                                    <button
+                                        class="px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        Manage
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Theme Toggling ---
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeIconLight = document.getElementById('theme-icon-light');
+            const themeIconDark = document.getElementById('theme-icon-dark');
+            const html = document.documentElement;
+
+            // Apply saved theme on load
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                html.classList.add('dark');
+                themeIconLight.classList.remove('hidden');
+                themeIconDark.classList.add('hidden');
+            } else {
+                html.classList.remove('dark');
+                themeIconLight.classList.add('hidden');
+                themeIconDark.classList.remove('hidden');
+            }
+
+            // Toggle theme on click
+            themeToggleBtn.addEventListener('click', () => {
+                if (html.classList.contains('dark')) {
+                    html.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    themeIconLight.classList.add('hidden');
+                    themeIconDark.classList.remove('hidden');
+                } else {
+                    html.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    themeIconLight.classList.remove('hidden');
+                    themeIconDark.classList.add('hidden');
+                }
+            });
+
+            // --- Mobile Sidebar ---
+            const openSidebarBtn = document.getElementById('open-sidebar-btn');
+            const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+
+            const openSidebar = () => {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            };
+
+            const closeSidebar = () => {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            };
+
+            openSidebarBtn.addEventListener('click', openSidebar);
+            closeSidebarBtn.addEventListener('click', closeSidebar);
+            backdrop.addEventListener('click', closeSidebar);
+
+            // --- Profile Dropdown ---
+            const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
+            const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
+            const profileDropdownContainer = document.getElementById('profile-dropdown-container');
+
+            profileDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                profileDropdownMenu.classList.toggle('hidden');
+            });
+
+            // Click outside to close
+            document.addEventListener('click', (e) => {
+                if (!profileDropdownContainer.contains(e.target)) {
+                    profileDropdownMenu.classList.add('hidden');
+                }
+            });
+
+            // --- Page Navigation (Routing) ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const pageTitle = document.getElementById('page-title');
+
+            const showPage = (hash) => {
+                // Default to #dashboard if no hash
+                const targetHash = hash || '#dashboard';
+                const targetPageId = 'page-' + targetHash.substring(1);
+                
+                let pageFound = false;
+
+                // Hide all sections
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                
+                // Deactivate all links
+                navLinks.forEach(link => {
+                    link.classList.remove('bg-blue-600', 'text-white', 'dark:bg-blue-500');
+                    link.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+                });
+
+                // Show the target section and activate the link
+                const targetSection = document.getElementById(targetPageId);
+                const targetLink = document.querySelector(`.nav-link[href="${targetHash}"]`);
+
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    pageFound = true;
+                } else {
+                    // Fallback to dashboard if page not found
+                    document.getElementById('page-dashboard').classList.add('active');
+                    document.querySelector('.nav-link[href="#dashboard"]').classList.add('bg-blue-600', 'text-white', 'dark:bg-blue-500');
+                }
+                
+                if (targetLink) {
+                    targetLink.classList.add('bg-blue-600', 'text-white', 'dark:bg-blue-500');
+                    targetLink.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+                    // Update page title
+                    pageTitle.textContent = targetLink.textContent.trim();
+                } else {
+                     pageTitle.textContent = 'Dashboard';
+                }
+
+                // Close sidebar on mobile after navigation
+                if (window.innerWidth < 768) {
+                    closeSidebar();
+                }
+            };
+
+            // Handle navigation clicks
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const hash = e.currentTarget.hash;
+                    if (hash) {
+                        window.location.hash = hash;
+                    }
+                });
+            });
+
+            // Show page on initial load
+            showPage(window.location.hash);
+
+            // Show page on hash change (back/forward buttons)
+            window.addEventListener('hashchange', () => {
+                showPage(window.location.hash);
+            });
+
+            // --- Mock Feature: Text to Image ---
+            const generateBtn = document.getElementById('generate-btn');
+            const imageLoader = document.getElementById('image-loader');
+            const imageResult = document.getElementById('image-result');
+            const generatedImage = document.getElementById('generated-image');
+            const promptInput = document.getElementById('prompt-input');
+
+            generateBtn.addEventListener('click', () => {
+                if (promptInput.value.trim() === "") {
+                    alert("Please enter a prompt.");
+                    return;
+                }
+                // Hide result, show loader
+                imageResult.classList.add('hidden');
+                imageLoader.classList.remove('hidden');
+                imageLoader.classList.add('flex');
+
+                // Simulate API call
+                setTimeout(() => {
+                    const placeholderUrl = `https://placehold.co/600x400/90CDF4/2C5282?text=${encodeURIComponent(promptInput.value)}`;
+                    generatedImage.src = placeholderUrl;
+                    
+                    // Hide loader, show result
+                    imageLoader.classList.add('hidden');
+                    imageLoader.classList.remove('flex');
+                    imageResult.classList.remove('hidden');
+                }, 2000);
+            });
+
+            // --- Mock Feature: Background Remove ---
+            const bgRemoveUpload = document.getElementById('bg-remove-upload');
+            const bgRemoveBtn = document.getElementById('bg-remove-btn');
+            const bgRemovePreview = document.getElementById('bg-remove-preview');
+            const bgRemoveOriginal = document.getElementById('bg-remove-original');
+            const bgRemoveResult = document.getElementById('bg-remove-result');
+            const bgRemoveLoader = document.getElementById('bg-remove-result-loader');
+            const bgRemoveFilename = document.getElementById('bg-remove-filename');
+
+            bgRemoveUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    bgRemoveOriginal.src = URL.createObjectURL(file);
+                    bgRemoveFilename.textContent = file.name;
+                    bgRemovePreview.classList.remove('hidden');
+                    bgRemoveResult.classList.add('hidden');
+                    bgRemoveLoader.classList.remove('hidden');
+                    bgRemoveLoader.classList.add('flex');
+                }
+            });
+
+            bgRemoveBtn.addEventListener('click', () => {
+                if (!bgRemoveUpload.files[0]) {
+                    alert("Please upload an image first.");
+                    return;
+                }
+                bgRemoveResult.classList.add('hidden');
+                bgRemoveLoader.classList.remove('hidden');
+                bgRemoveLoader.classList.add('flex');
+                
+                setTimeout(() => {
+                    const placeholderUrl = `https://placehold.co/600x400/000000/FFFFFF?text=Removed+BG`;
+                    bgRemoveResult.src = placeholderUrl;
+                    
+                    bgRemoveLoader.classList.add('hidden');
+                    bgRemoveLoader.classList.remove('flex');
+                    bgRemoveResult.classList.remove('hidden');
+                }, 2000);
+            });
+
+            // --- Mock Feature: Background Change ---
+            const bgChangeUploadOrig = document.getElementById('bg-change-upload-orig');
+            const bgChangeFilenameOrig = document.getElementById('bg-change-filename-orig');
+            const bgChangeUploadNew = document.getElementById('bg-change-upload-new');
+            const bgChangeFilenameNew = document.getElementById('bg-change-filename-new');
+            const bgChangeBtn = document.getElementById('bg-change-btn');
+            const bgChangePreview = document.getElementById('bg-change-preview');
+            const bgChangeOriginal = document.getElementById('bg-change-original');
+            const bgChangeResult = document.getElementById('bg-change-result');
+            const bgChangeLoader = document.getElementById('bg-change-result-loader');
+
+            bgChangeUploadOrig.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    bgChangeOriginal.src = URL.createObjectURL(file);
+                    bgChangeFilenameOrig.textContent = file.name;
+                    bgChangePreview.classList.remove('hidden');
+                    bgChangeResult.classList.add('hidden');
+                    bgChangeLoader.classList.remove('hidden');
+                    bgChangeLoader.classList.add('flex');
+                }
+            });
+
+            bgChangeUploadNew.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(file) bgChangeFilenameNew.textContent = file.name;
+            });
+            
+            bgChangeBtn.addEventListener('click', () => {
+                if (!bgChangeUploadOrig.files[0]) {
+                    alert("Please upload an original image.");
+                    return;
+                }
+                bgChangeResult.classList.add('hidden');
+                bgChangeLoader.classList.remove('hidden');
+                bgChangeLoader.classList.add('flex');
+
+                setTimeout(() => {
+                    const placeholderUrl = `https://placehold.co/600x400/63B3ED/FFFFFF?text=New+Background`;
+                    bgChangeResult.src = placeholderUrl;
+                    
+                    bgChangeLoader.classList.add('hidden');
+                    bgChangeLoader.classList.remove('flex');
+                    bgChangeResult.classList.remove('hidden');
+                }, 2000);
+            });
+
+        });
+    </script>
+</body>
+</html>

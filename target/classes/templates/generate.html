@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display: none;
+            width: 2rem;
+            height: 2rem;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #09f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .spinner.visible { display: block; }
+        #image-result.visible { display: block; }
+        #error-message.visible { display: block; }
+    </style>
+</head>
+<body class="h-full flex flex-col items-center justify-start p-4">
+
+    <!-- Dashboard Container -->
+    <div class="bg-white shadow-xl rounded-lg w-full max-w-3xl p-8 mt-6 space-y-6">
+
+        <!-- User Info Section -->
+        <div class="border-b pb-4 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold mb-1">Welcome, <span th:text="${user.name}">User Name</span> 👋</h1>
+                    <p class="text-gray-700"><strong>Email:</strong> <span th:text="${user.email}">user@example.com</span></p>
+                    <p class="text-gray-700"><strong>Phone:</strong> <span th:text="${user.phone}">+1234567890</span></p>
+                    <div class="mt-2 text-lg">
+                        <strong>Credits:</strong> <span id="credit-balance" th:text="${user.credits.balance}">0</span>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <!-- Logout Button -->
+                    <a th:href="@{/logout}" 
+                        class="flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Logout
+                    </a>
+
+                    <!-- Buy Credits Button -->
+                    <a th:href="@{/buy-credits}" 
+                        class="flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                        Buy Credits
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Generator Card -->
+        <div class="bg-gray-50 rounded-xl p-6 shadow-inner space-y-4">
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-4">AI Image Generator</h1>
+
+            <!-- Form -->
+            <form id="image-form" class="space-y-4">
+                <div>
+                    <label for="prompt" class="block text-sm font-medium text-gray-700 mb-1">
+                        Enter your prompt:
+                    </label>
+                    <textarea id="prompt" name="prompt" rows="3"
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        placeholder="e.g., A red cat wearing a tiny astronaut helmet"></textarea>
+                </div>
+                
+                <button type="submit"
+                    class="w-full flex justify-center items-center gap-2 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+                    Generate Image
+                </button>
+            </form>
+
+            <!-- Results -->
+            <div id="result-container" class="mt-4 text-center">
+                <div id="loader" class="spinner mx-auto"></div>
+                <p id="error-message" class="hidden text-red-600 font-medium mt-2"></p>
+                <div class="mt-4">
+                    <img id="image-result" class="hidden w-full rounded-lg shadow-md border border-gray-200" alt="Generated image">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        const imageForm = document.getElementById('image-form');
+        const promptInput = document.getElementById('prompt');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const imageResult = document.getElementById('image-result');
+        const creditSpan = document.getElementById('credit-balance');
+
+        imageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const prompt = promptInput.value.trim();
+            if (!prompt) { showError('Please enter a prompt.'); return; }
+
+            showLoader(true);
+            showError(null);
+            showImage(null);
+
+            try {
+                const body = new URLSearchParams();
+                body.append('prompt', prompt);
+
+                const response = await fetch('/api/image/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body
+                });
+
+                if (response.ok) {
+                    const imageBlob = await response.blob();
+                    const imageUrl = URL.createObjectURL(imageBlob);
+                    showImage(imageUrl);
+
+                    // Deduct 1 credit in the UI
+                    let currentCredits = parseInt(creditSpan.textContent);
+                    if (!isNaN(currentCredits) && currentCredits > 0) {
+                        creditSpan.textContent = currentCredits - 1;
+                    }
+                } else if (response.status === 400) {
+                    const errorText = await response.text();
+                    showError(errorText);
+                } else {
+                    showError(`Error: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showError('An unexpected error occurred. Check the console.');
+            } finally {
+                showLoader(false);
+            }
+        });
+
+        function showLoader(isLoading) { loader.classList.toggle('visible', isLoading); }
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.toggle('visible', !!message);
+        }
+        function showImage(src) {
+            if (src) {
+                imageResult.src = src;
+                imageResult.classList.add('visible');
+                imageResult.onload = () => {
+                    if (imageResult.dataset.oldUrl) URL.revokeObjectURL(imageResult.dataset.oldUrl);
+                    imageResult.dataset.oldUrl = src;
+                };
+            } else {
+                imageResult.src = '';
+                imageResult.classList.remove('visible');
+                if (imageResult.dataset.oldUrl) {
+                    URL.revokeObjectURL(imageResult.dataset.oldUrl);
+                    delete imageResult.dataset.oldUrl;
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>

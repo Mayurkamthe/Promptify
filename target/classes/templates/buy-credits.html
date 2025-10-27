@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Credits - Promptify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
+        <h1 class="text-2xl font-bold mb-4 text-center">Buy Credits 💳</h1>
+
+        <!-- User Info -->
+        <div class="text-center mb-6">
+            <p class="text-lg">
+                Hello, <strong th:text="${user.name}">User</strong>
+            </p>
+            <p class="text-gray-600">
+                Current Credits: <strong th:text="${user.credits.balance}">0</strong>
+            </p>
+        </div>
+
+        <!-- Buy Credits Form -->
+        <form id="buyCreditsForm" class="space-y-4">
+            <label class="block text-gray-700 font-medium">Select Credit Package:</label>
+            <select id="creditAmount" name="amount" class="w-full border rounded-lg p-2">
+                <option value="5" data-price="1000">5 Credits - ₹10</option>
+                <option value="10" data-price="1900">10 Credits - ₹19</option>
+                <option value="25" data-price="3900">25 Credits - ₹39</option>
+                <option value="50" data-price="6900">50 Credits - ₹69</option>
+                <option value="100" data-price="9900">100 Credits - ₹99</option>
+            </select>
+
+            <button type="button"
+                    onclick="buyCredits()"
+                    class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                Buy Now
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <a th:href="@{/genrate}" class="text-blue-600 hover:underline">⬅ Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+    /*<![CDATA[*/
+    const razorpayKey = /*[[${razorpayKey}]]*/ '';
+
+    function buyCredits() {
+        const select = document.getElementById('creditAmount');
+        const amount = select.options[select.selectedIndex].dataset.price;
+        const credits = select.value;
+
+        fetch('/create-order', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({amount: amount})
+        })
+        .then(res => res.json())
+        .then(order => {
+            const options = {
+                "key": razorpayKey,
+                "amount": order.amount,
+                "currency": "INR",
+                "name": "Promptify",
+                "description": `${credits} Credits`,
+                "order_id": order.id,
+                "handler": function (response) {
+                    fetch('/payment-success', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            credits: credits
+                        })
+                    }).then(res => {
+                        if (res.ok) {
+                            alert('✅ Payment Successful! Credits added.');
+                            location.reload();
+                        } else {
+                            alert('❌ Payment verification failed.');
+                        }
+                    });
+                },
+                "theme": {"color": "#2563eb"}
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+        })
+        .catch(err => console.error('Error:', err));
+    }
+    /*]]>*/
+    </script>
+</body>
+</html>

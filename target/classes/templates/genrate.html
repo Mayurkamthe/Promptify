@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="'Promtyfy Dashboard - ' + ${user.name}">Promtyfy Dashboard</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F8FAFC;
+      color: #1A202C;
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Navbar ===== -->
+  <header class="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md shadow-sm">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- Logo -->
+        <a th:href="" class="flex items-center space-x-2">
+          <svg class="w-7 h-7 text-blue-500" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.975 2.888a1 1 0 00-.363 1.118l1.519 4.674c.3.921-.755 1.688-1.538 1.118l-3.975-2.888a1 1 0 00-1.176 0l-3.975 2.888c-.783.57-1.838-.197-1.538-1.118l1.519-4.674a1 1 0 00-.363-1.118L2.922 10.1c-.783-.57-.381-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z"></path>
+          </svg>
+          <span class="text-2xl font-bold text-gray-900">Promtyfy</span>
+        </a>
+
+        <!-- Nav Links -->
+        <div class="flex items-center space-x-6">
+          <a th:href="@{/dashboard}" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">Dashboard</a>
+          <a th:href="@{/buy-credits}" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">Buy Credits</a>
+          <a th:href="@{/logout}" class="bg-red-500 text-white font-medium py-2 px-5 rounded-full hover:bg-red-600 transition-all shadow-md">Logout</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ===== Dashboard ===== -->
+  <main class="py-20 px-4 flex justify-center">
+    <div class="bg-white shadow-xl rounded-2xl w-full max-w-3xl p-8 fade-in">
+      <!-- Welcome Section -->
+      <div class="mb-8 border-b border-gray-200 pb-5">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+          Welcome, <span th:text="${user.name}">User</span> 👋
+        </h1>
+        <p class="text-gray-600">
+          Credits:
+          <span id="credit-balance" th:text="${user.credits.balance}" class="font-semibold text-blue-600">5</span>
+        </p>
+      </div>
+
+      <!-- Generator -->
+      <div>
+        <h2 class="text-2xl font-semibold mb-6 text-gray-900 text-center">AI Image Generator</h2>
+
+        <form id="image-form" class="space-y-5" th:action="@{/api/image/generate}" method="post">
+          <div>
+            <label for="prompt" class="block text-sm font-medium text-gray-800 mb-2">
+              Describe your image:
+            </label>
+            <textarea id="prompt" name="prompt" rows="3"
+              placeholder="e.g. A cyberpunk cat flying through neon clouds"
+              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></textarea>
+          </div>
+          <button type="submit"
+            class="w-full flex justify-center items-center gap-2 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+            🎨 Generate Image
+          </button>
+        </form>
+
+        <!-- Result Section -->
+        <div id="result-container" class="mt-8 text-center">
+          <div id="loader" class="hidden">
+            <div class="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+            <p class="text-sm text-gray-600 mt-3">Generating your image...</p>
+          </div>
+
+          <p id="error-message" class="hidden text-red-600 bg-red-100 p-3 rounded-lg mt-4"></p>
+
+          <div class="mt-4">
+            <img id="image-result" class="hidden w-full max-w-md mx-auto rounded-xl shadow-lg border border-gray-200" alt="Generated image">
+            <a id="download-btn" href="#" download="generated-image.png"
+              class="hidden mt-4 inline-block bg-gray-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-700 transition-all">
+              ⬇️ Download Image
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="py-8 text-center text-gray-500 bg-white border-t">
+    <p>© 2025 Promtyfy. All Rights Reserved.</p>
+  </footer>
+
+  <!-- ===== Script ===== -->
+  <script th:inline="javascript">
+    const imageForm = document.getElementById('image-form');
+    const promptInput = document.getElementById('prompt');
+    const loader = document.getElementById('loader');
+    const imageResult = document.getElementById('image-result');
+    const errorMessage = document.getElementById('error-message');
+    const downloadBtn = document.getElementById('download-btn');
+    const creditSpan = document.getElementById('credit-balance');
+
+    imageForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = promptInput.value.trim();
+      if (!prompt) {
+        showError("Please enter a prompt.");
+        return;
+      }
+
+      showLoader(true);
+      showError(null);
+      showImage(null);
+
+      try {
+        const body = new URLSearchParams();
+        body.append('prompt', prompt);
+
+        const response = await fetch(/*[[@{/api/image/generate}]]*/ {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+          showImage(imageUrl);
+
+          let currentCredits = parseInt(creditSpan.textContent);
+          if (!isNaN(currentCredits) && currentCredits > 0) {
+            creditSpan.textContent = currentCredits - 1;
+          }
+        } else if (response.status === 402) {
+          showError('You have no credits left. Please buy more.');
+        } else {
+          showError('Failed to generate image. Please try again.');
+        }
+      } catch (err) {
+        showError('Something went wrong. Please try again.');
+      } finally {
+        showLoader(false);
+      }
+    });
+
+    function showLoader(show) {
+      loader.classList.toggle('hidden', !show);
+    }
+
+    function showError(msg) {
+      if (msg) {
+        errorMessage.textContent = msg;
+        errorMessage.classList.remove('hidden');
+      } else {
+        errorMessage.classList.add('hidden');
+      }
+    }
+
+    function showImage(src) {
+      if (src) {
+        imageResult.src = src;
+        imageResult.classList.remove('hidden');
+        downloadBtn.href = src;
+        downloadBtn.classList.remove('hidden');
+      } else {
+        imageResult.classList.add('hidden');
+        downloadBtn.classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
