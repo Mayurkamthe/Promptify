@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: Promptify
+    runtime: java
+    buildCommand: "./mvnw clean package -DskipTests"
+    startCommand: "java -jar target/Promptify-0.0.1-SNAPSHOT.jar"
+    envVars:
+      - key: JAVA_VERSION
+        value: "17"
