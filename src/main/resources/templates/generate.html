@@ -1,174 +1,588 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-100">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Generator Dashboard</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio — Promptify</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080B12;--surface:#0E1420;--surface2:#131927;--border:rgba(255,255,255,0.07);--text:#F0F2F8;--muted:#6B7693;--accent:#6C63FF;--accent-h:#7B74FF;--sb:230px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow:hidden;}
+h1,h2,h3{font-family:'Syne',sans-serif;}
 
-    <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner {
-            display: none;
-            width: 2rem;
-            height: 2rem;
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #09f;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        .spinner.visible { display: block; }
-        #image-result.visible { display: block; }
-        #error-message.visible { display: block; }
-    </style>
+/* SIDEBAR */
+aside{width:var(--sb);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:fixed;left:0;top:0;z-index:50;transition:transform .3s;}
+.sb-header{padding:20px 18px;border-bottom:1px solid var(--border);}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:var(--text);text-decoration:none;}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,#6C63FF,#9B6BFF);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:.88rem;font-weight:500;transition:all .2s;cursor:pointer;margin-bottom:2px;border:none;background:transparent;width:100%;text-align:left;}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.nav-item.active{background:rgba(108,99,255,.15);color:var(--accent);}
+.nav-item svg{flex-shrink:0;}
+.nav-section{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:14px 12px 6px;opacity:.6;}
+.sb-footer{padding:14px 10px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .2s;}
+.user-card:hover{background:rgba(255,255,255,.04);}
+.u-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#FF6B6B);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;}
+.u-name{font-size:.86rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.u-credits{font-size:.74rem;color:var(--muted);}
+.credits-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.25);color:var(--accent);font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:100px;}
+
+/* MAIN */
+.main{margin-left:var(--sb);flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.topbar{height:60px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;}
+.page-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;}
+.topbar-actions{display:flex;align-items:center;gap:10px;}
+.content{flex:1;overflow-y:auto;padding:28px;}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;}
+.card-sm{padding:18px;}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;align-items:center;gap:14px;}
+.stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;}
+.stat-val{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-.02em;}
+.stat-lbl{font-size:.8rem;color:var(--muted);font-weight:400;}
+
+/* FORM */
+label.field-lbl{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:.02em;}
+textarea,input.field{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 14px;width:100%;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;resize:vertical;}
+textarea:focus,input.field:focus{border-color:rgba(108,99,255,.5);}
+textarea::placeholder,input.field::placeholder{color:var(--muted);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:.88rem;padding:11px 20px;border-radius:10px;cursor:pointer;border:none;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-h);box-shadow:0 7px 24px rgba(108,99,255,.4);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-ghost:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);}
+.btn-success{background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.28);color:#34D399;}
+.btn-success:hover{background:rgba(52,211,153,.24);}
+.btn-danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#F87171;}
+.btn-danger:hover{background:rgba(239,68,68,.22);}
+.btn-full{width:100%;}
+
+/* IMAGE RESULT */
+.img-placeholder{border:2px dashed var(--border);border-radius:14px;height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:10px;font-size:.88rem;font-weight:300;}
+.result-img{width:100%;border-radius:14px;object-fit:cover;border:1px solid var(--border);}
+.spinner{width:36px;height:36px;border:3px solid rgba(108,99,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* UPLOAD DROP */
+.upload-zone{border:2px dashed var(--border);border-radius:14px;padding:36px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:border-color .2s,background .2s;text-align:center;}
+.upload-zone:hover,.upload-zone.drag{border-color:rgba(108,99,255,.45);background:rgba(108,99,255,.04);}
+.upload-zone input{display:none;}
+
+/* BEFORE/AFTER */
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+.ba-img{width:100%;border-radius:12px;object-fit:cover;border:1px solid var(--border);}
+
+/* CHECKER BG (for transparent images) */
+.checker{background-image:repeating-conic-gradient(#1a2030 0 25%,transparent 0 50%);background-size:16px 16px;border-radius:12px;}
+
+/* HISTORY */
+.hist-list{display:flex;flex-direction:column;gap:3px;}
+.hist-item{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;transition:background .2s;cursor:pointer;}
+.hist-item:hover{background:rgba(255,255,255,.03);}
+.hist-thumb{width:52px;height:52px;border-radius:9px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
+.hist-info{flex:1;min-width:0;}
+.hist-type{font-size:.84rem;font-weight:600;}
+.hist-prompt{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-date{font-size:.74rem;color:var(--muted);margin-top:2px;}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 18px;font-size:.86rem;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:toastIn .3s ease;}
+.toast.error{border-color:rgba(239,68,68,.3);color:#F87171;}
+.toast.success{border-color:rgba(52,211,153,.3);color:#34D399;}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:20px;}
+.tab{padding:8px 16px;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;border:none;background:transparent;font-family:'DM Sans',sans-serif;}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4);}
+
+@media(max-width:800px){
+  aside{transform:translateX(-100%);}
+  aside.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .ba-grid{grid-template-columns:1fr;}
+}
+</style>
 </head>
-<body class="h-full flex flex-col items-center justify-start p-4">
+<body>
 
-    <!-- Dashboard Container -->
-    <div class="bg-white shadow-xl rounded-lg w-full max-w-3xl p-8 mt-6 space-y-6">
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-header">
+    <a href="/" class="logo">
+      <div class="logo-icon"><svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+      Promptify
+    </a>
+  </div>
 
-        <!-- User Info Section -->
-        <div class="border-b pb-4 mb-6">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold mb-1">Welcome, <span th:text="${user.name}">User Name</span> 👋</h1>
-                    <p class="text-gray-700"><strong>Email:</strong> <span th:text="${user.email}">user@example.com</span></p>
-                    <p class="text-gray-700"><strong>Phone:</strong> <span th:text="${user.phone}">+1234567890</span></p>
-                    <div class="mt-2 text-lg">
-                        <strong>Credits:</strong> <span id="credit-balance" th:text="${user.credits.balance}">0</span>
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <!-- Logout Button -->
-                    <a th:href="@{/logout}" 
-                        class="flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        Logout
-                    </a>
+  <nav>
+    <div class="nav-section">Studio</div>
+    <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" data-page="text2img" onclick="showPage('text2img', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3c-1.2 0-2.4.6-3 1.7A3.4 3.4 0 0 0 6 6.3c0 1.1.4 2.2 1.2 3C8 10.2 9 11 9 12.3V13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-.7c0-1.2 1-2 1.8-2.8.8-.7 1.2-1.8 1.2-3a3.4 3.4 0 0 0-3-4.6c-.6-1-1.8-1.7-3-1.7Z"/></svg>
+      Text to Image
+    </button>
+    <div class="nav-section">Editing</div>
+    <button class="nav-item" data-page="bgremove" onclick="showPage('bgremove', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      Remove Background
+    </button>
+    <button class="nav-item" data-page="bgreplace" onclick="showPage('bgreplace', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+      Replace Background
+    </button>
+    <button class="nav-item" data-page="sketch" onclick="showPage('sketch', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+      Sketch to Image
+    </button>
+    <div class="nav-section">Account</div>
+    <button class="nav-item" data-page="history" onclick="showPage('history', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>
+      History
+    </button>
+    <button class="nav-item" onclick="window.location.href='/buy-credits'">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4Z"/><path d="M4 12v4h16v-4Z"/><path d="M18 12a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2Z"/></svg>
+      Buy Credits
+    </button>
+  </nav>
 
-                    <!-- Buy Credits Button -->
-                    <a th:href="@{/buy-credits}" 
-                        class="flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
-                        Buy Credits
-                    </a>
-                </div>
-            </div>
+  <div class="sb-footer">
+    <div class="user-card" onclick="window.location.href='/logout'">
+      <div class="u-avatar" th:text="${user.name != null ? user.name.substring(0,1).toUpperCase() : 'U'}">U</div>
+      <div style="flex:1;min-width:0;">
+        <div class="u-name" th:text="${user.name}">User Name</div>
+        <div class="u-credits">
+          <span class="credits-badge">⚡ <span id="credits-display" th:text="${user.credits.balance}">0</span> credits</span>
         </div>
+      </div>
+      <svg width="14" height="14" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </div>
+  </div>
+</aside>
 
-        <!-- Image Generator Card -->
-        <div class="bg-gray-50 rounded-xl p-6 shadow-inner space-y-4">
-            <h1 class="text-2xl font-bold text-center text-gray-800 mb-4">AI Image Generator</h1>
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button onclick="document.getElementById('sidebar').classList.toggle('open')" style="background:transparent;border:none;color:var(--text);cursor:pointer;display:none;padding:4px;" id="menu-btn">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="page-title" id="topbar-title">Dashboard</span>
+    <div class="topbar-actions">
+      <span class="credits-badge">⚡ <span id="credits-top" th:text="${user.credits.balance}">0</span></span>
+      <a href="/buy-credits" class="btn btn-primary" style="padding:8px 16px;font-size:.82rem;">+ Credits</a>
+    </div>
+  </div>
 
-            <!-- Form -->
-            <form id="image-form" class="space-y-4">
-                <div>
-                    <label for="prompt" class="block text-sm font-medium text-gray-700 mb-1">
-                        Enter your prompt:
-                    </label>
-                    <textarea id="prompt" name="prompt" rows="3"
-                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        placeholder="e.g., A red cat wearing a tiny astronaut helmet"></textarea>
-                </div>
-                
-                <button type="submit"
-                    class="w-full flex justify-center items-center gap-2 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
-                    Generate Image
-                </button>
-            </form>
+  <div class="content">
 
-            <!-- Results -->
-            <div id="result-container" class="mt-4 text-center">
-                <div id="loader" class="spinner mx-auto"></div>
-                <p id="error-message" class="hidden text-red-600 font-medium mt-2"></p>
-                <div class="mt-4">
-                    <img id="image-result" class="hidden w-full rounded-lg shadow-md border border-gray-200" alt="Generated image">
-                </div>
-            </div>
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(108,99,255,.12);">🎨</div>
+          <div><div class="stat-val">42</div><div class="stat-lbl">Images Generated</div></div>
         </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(52,211,153,.12);">⚡</div>
+          <div><div class="stat-val" th:text="${user.credits.balance}">0</div><div class="stat-lbl">Credits Remaining</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(255,209,102,.12);">🖼️</div>
+          <div><div class="stat-val">128</div><div class="stat-lbl">Images Saved</div></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card">
+          <h2 style="font-size:1.05rem;margin-bottom:8px;">Quick Generate</h2>
+          <p style="font-size:.86rem;color:var(--muted);margin-bottom:18px;font-weight:300;">Jump straight into creating your next image.</p>
+          <button class="btn btn-primary btn-full" onclick="showPage('text2img', document.querySelector('[data-page=text2img]'))">Go to Text to Image →</button>
+        </div>
+        <div class="card">
+          <h2 style="font-size:1.05rem;margin-bottom:8px;">Need more credits?</h2>
+          <p style="font-size:.86rem;color:var(--muted);margin-bottom:18px;font-weight:300;">Top up anytime. No subscription required.</p>
+          <a href="/buy-credits" class="btn btn-ghost btn-full">Buy Credits</a>
+        </div>
+      </div>
     </div>
 
-    <!-- Script -->
-    <script>
-        const imageForm = document.getElementById('image-form');
-        const promptInput = document.getElementById('prompt');
-        const loader = document.getElementById('loader');
-        const errorMessage = document.getElementById('error-message');
-        const imageResult = document.getElementById('image-result');
-        const creditSpan = document.getElementById('credit-balance');
+    <!-- TEXT TO IMAGE -->
+    <div id="page-text2img" class="page">
+      <div style="max-width:680px;margin:0 auto;">
+        <div class="card" style="margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;margin-bottom:18px;">Text to Image</h2>
+          <label class="field-lbl">Prompt</label>
+          <textarea id="t2i-prompt" rows="4" placeholder="Describe what you want to generate... e.g., A hyperrealistic astronaut floating above Tokyo at golden hour"></textarea>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button class="btn btn-primary btn-full" id="t2i-btn" onclick="generateImage()">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 3c-1.2 0-2.4.6-3 1.7A3.4 3.4 0 0 0 6 6.3c0 1.1.4 2.2 1.2 3C8 10.2 9 11 9 12.3V13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-.7c0-1.2 1-2 1.8-2.8.8-.7 1.2-1.8 1.2-3a3.4 3.4 0 0 0-3-4.6c-.6-1-1.8-1.7-3-1.7Z"/></svg>
+              Generate Image
+            </button>
+          </div>
+        </div>
+        <div class="card" id="t2i-result-card" style="display:none;">
+          <div id="t2i-loading" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:48px;gap:14px;">
+            <div class="spinner"></div>
+            <p style="font-size:.88rem;color:var(--muted);">Generating your masterpiece...</p>
+          </div>
+          <div id="t2i-output" style="display:none;">
+            <img id="t2i-img" class="result-img" alt="Generated image">
+            <div style="display:flex;gap:10px;margin-top:14px;">
+              <button class="btn btn-success" id="t2i-download-btn" onclick="downloadImage('t2i-img', 'promptify-image.png')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+              <button class="btn btn-ghost" onclick="generateImage()">Regenerate</button>
+            </div>
+          </div>
+          <div id="t2i-error" style="display:none;color:#F87171;font-size:.88rem;padding:8px 0;"></div>
+        </div>
+      </div>
+    </div>
 
-        imageForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const prompt = promptInput.value.trim();
-            if (!prompt) { showError('Please enter a prompt.'); return; }
+    <!-- BG REMOVE -->
+    <div id="page-bgremove" class="page">
+      <div style="max-width:780px;margin:0 auto;">
+        <div class="card" style="margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;margin-bottom:18px;">Remove Background</h2>
+          <div class="upload-zone" id="bgr-zone" onclick="document.getElementById('bgr-file').click()">
+            <input type="file" id="bgr-file" accept="image/*" onchange="handleBgrUpload(this)">
+            <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-size:.9rem;font-weight:500;" id="bgr-fname">Click to upload image</p>
+            <p style="font-size:.8rem;color:var(--muted);">PNG, JPG, WEBP up to 10MB</p>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-full" id="bgr-btn" onclick="removeBackground()">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              Remove Background
+            </button>
+          </div>
+        </div>
+        <div id="bgr-result-wrap" style="display:none;" class="card">
+          <div id="bgr-loading" style="display:none;flex-direction:column;align-items:center;padding:40px;gap:12px;"><div class="spinner"></div><p style="font-size:.86rem;color:var(--muted);">Processing image...</p></div>
+          <div id="bgr-output" style="display:none;">
+            <div class="ba-grid">
+              <div><p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Original</p><img id="bgr-orig-img" class="ba-img" alt="Original"></div>
+              <div><p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Background Removed</p><img id="bgr-result-img" class="ba-img checker" alt="Result"></div>
+            </div>
+            <div style="margin-top:14px;">
+              <button class="btn btn-success" onclick="downloadImage('bgr-result-img', 'bg-removed.png')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download PNG
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            showLoader(true);
-            showError(null);
-            showImage(null);
+    <!-- BG REPLACE -->
+    <div id="page-bgreplace" class="page">
+      <div style="max-width:780px;margin:0 auto;">
+        <div class="card" style="margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;margin-bottom:18px;">Replace Background</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+            <div>
+              <label class="field-lbl">Original Image</label>
+              <div class="upload-zone" onclick="document.getElementById('bgp-file-orig').click()">
+                <input type="file" id="bgp-file-orig" accept="image/*" onchange="previewBgp(this,'bgp-orig-preview')">
+                <svg width="26" height="26" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                <p style="font-size:.84rem;color:var(--muted);" id="bgp-fname-orig">Upload photo</p>
+              </div>
+              <img id="bgp-orig-preview" style="display:none;width:100%;border-radius:10px;margin-top:10px;border:1px solid var(--border);" alt="">
+            </div>
+            <div>
+              <label class="field-lbl">New Background (image)</label>
+              <div class="upload-zone" onclick="document.getElementById('bgp-file-new').click()">
+                <input type="file" id="bgp-file-new" accept="image/*" onchange="previewBgp(this,'bgp-new-preview')">
+                <svg width="26" height="26" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m2 12 1.6-1.6a1 1 0 0 1 1.4 0L8 14l-4.6-4.6a1 1 0 0 1 0-1.4L7 4"/></svg>
+                <p style="font-size:.84rem;color:var(--muted);" id="bgp-fname-new">Upload background</p>
+              </div>
+              <img id="bgp-new-preview" style="display:none;width:100%;border-radius:10px;margin-top:10px;border:1px solid var(--border);" alt="">
+            </div>
+          </div>
+          <label class="field-lbl">— or describe the new background —</label>
+          <textarea id="bgp-prompt" rows="2" placeholder="e.g., A lush tropical beach at sunset with golden light"></textarea>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-full" onclick="replaceBackground()">Replace Background</button>
+          </div>
+        </div>
+        <div id="bgp-result-wrap" style="display:none;" class="card">
+          <div id="bgp-loading" style="display:none;flex-direction:column;align-items:center;padding:40px;gap:12px;"><div class="spinner"></div><p style="font-size:.86rem;color:var(--muted);">Replacing background...</p></div>
+          <div id="bgp-output" style="display:none;">
+            <div class="ba-grid">
+              <div><p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Original</p><img id="bgp-ba-orig" class="ba-img" alt="Original"></div>
+              <div><p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">New Background</p><img id="bgp-result-img" class="ba-img" alt="Result"></div>
+            </div>
+            <button class="btn btn-success" style="margin-top:14px;" onclick="downloadImage('bgp-result-img','bg-replaced.png')">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            try {
-                const body = new URLSearchParams();
-                body.append('prompt', prompt);
+    <!-- SKETCH TO IMAGE -->
+    <div id="page-sketch" class="page">
+      <div style="max-width:680px;margin:0 auto;">
+        <div class="card" style="margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;margin-bottom:18px;">Sketch to Image</h2>
+          <div class="upload-zone" onclick="document.getElementById('sk-file').click()" style="margin-bottom:14px;">
+            <input type="file" id="sk-file" accept="image/*" onchange="handleSketchUpload(this)">
+            <svg width="28" height="28" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+            <p style="font-size:.88rem;color:var(--muted);" id="sk-fname">Upload your sketch</p>
+          </div>
+          <img id="sk-preview" style="display:none;width:100%;border-radius:10px;margin-bottom:14px;border:1px solid var(--border);" alt="">
+          <label class="field-lbl">Style Prompt</label>
+          <textarea id="sk-prompt" rows="3" placeholder="Describe the style and details you want... e.g., Cyberpunk city, neon lights, hyper detailed, digital painting"></textarea>
+          <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="sketchToImage()">Generate from Sketch</button>
+        </div>
+        <div id="sk-result-wrap" style="display:none;" class="card">
+          <div id="sk-loading" style="display:none;flex-direction:column;align-items:center;padding:40px;gap:12px;"><div class="spinner"></div><p style="font-size:.86rem;color:var(--muted);">Rendering your sketch...</p></div>
+          <div id="sk-output" style="display:none;">
+            <div class="ba-grid">
+              <div><p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Sketch</p><img id="sk-orig-img" class="ba-img" alt="Sketch"></div>
+              <div><p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Generated</p><img id="sk-result-img" class="ba-img" alt="Result"></div>
+            </div>
+            <button class="btn btn-success" style="margin-top:14px;" onclick="downloadImage('sk-result-img','sketch-result.png')">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-                const response = await fetch('/api/image/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: body
-                });
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <div style="max-width:680px;margin:0 auto;">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+            <h2 style="font-size:1.1rem;">Generation History</h2>
+            <span style="font-size:.8rem;color:var(--muted);">Last 30 days</span>
+          </div>
+          <div class="hist-list" id="history-list">
+            <div class="hist-item">
+              <img src="https://picsum.photos/seed/h1/52/52" class="hist-thumb" alt="">
+              <div class="hist-info"><div class="hist-type">Text to Image</div><div class="hist-prompt">A hyperrealistic astronaut floating above Tokyo at golden hour</div><div class="hist-date">Today, 3:45 PM</div></div>
+              <button class="btn btn-ghost" style="padding:6px 13px;font-size:.8rem;">View</button>
+            </div>
+            <div class="hist-item">
+              <img src="https://picsum.photos/seed/h2/52/52" class="hist-thumb" alt="">
+              <div class="hist-info"><div class="hist-type">Background Remove</div><div class="hist-prompt">product-photo-white.jpg</div><div class="hist-date">Today, 1:22 PM</div></div>
+              <button class="btn btn-ghost" style="padding:6px 13px;font-size:.8rem;">View</button>
+            </div>
+            <div class="hist-item">
+              <img src="https://picsum.photos/seed/h3/52/52" class="hist-thumb" alt="">
+              <div class="hist-info"><div class="hist-type">Background Replace</div><div class="hist-prompt">portrait.jpg → tropical beach sunset</div><div class="hist-date">Yesterday, 9:10 AM</div></div>
+              <button class="btn btn-ghost" style="padding:6px 13px;font-size:.8rem;">View</button>
+            </div>
+            <div class="hist-item">
+              <img src="https://picsum.photos/seed/h4/52/52" class="hist-thumb" alt="">
+              <div class="hist-info"><div class="hist-type">Sketch to Image</div><div class="hist-prompt">rough-sketch.png → cyberpunk city neon lights</div><div class="hist-date">2 days ago</div></div>
+              <button class="btn btn-ghost" style="padding:6px 13px;font-size:.8rem;">View</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-                if (response.ok) {
-                    const imageBlob = await response.blob();
-                    const imageUrl = URL.createObjectURL(imageBlob);
-                    showImage(imageUrl);
+  </div><!-- /content -->
+</div><!-- /main -->
 
-                    // Deduct 1 credit in the UI
-                    let currentCredits = parseInt(creditSpan.textContent);
-                    if (!isNaN(currentCredits) && currentCredits > 0) {
-                        creditSpan.textContent = currentCredits - 1;
-                    }
-                } else if (response.status === 400) {
-                    const errorText = await response.text();
-                    showError(errorText);
-                } else {
-                    showError(`Error: ${response.status} ${response.statusText}`);
-                }
-            } catch (error) {
-                console.error('Fetch error:', error);
-                showError('An unexpected error occurred. Check the console.');
-            } finally {
-                showLoader(false);
-            }
-        });
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
 
-        function showLoader(isLoading) { loader.classList.toggle('visible', isLoading); }
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.toggle('visible', !!message);
-        }
-        function showImage(src) {
-            if (src) {
-                imageResult.src = src;
-                imageResult.classList.add('visible');
-                imageResult.onload = () => {
-                    if (imageResult.dataset.oldUrl) URL.revokeObjectURL(imageResult.dataset.oldUrl);
-                    imageResult.dataset.oldUrl = src;
-                };
-            } else {
-                imageResult.src = '';
-                imageResult.classList.remove('visible');
-                if (imageResult.dataset.oldUrl) {
-                    URL.revokeObjectURL(imageResult.dataset.oldUrl);
-                    delete imageResult.dataset.oldUrl;
-                }
-            }
-        }
-    </script>
+<script>
+// NAV
+function showPage(name, btn) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const pg = document.getElementById("page-" + name);
+  if (pg) pg.classList.add("active");
+  if (btn) btn.classList.add("active");
+  const titles = {dashboard:"Dashboard",text2img:"Text to Image",bgremove:"Remove Background",bgreplace:"Replace Background",sketch:"Sketch to Image",history:"History"};
+  document.getElementById("topbar-title").textContent = titles[name] || name;
+}
 
+// TOAST
+function toast(msg, type="success") {
+  const w = document.getElementById("toast-wrap");
+  const t = document.createElement("div");
+  t.className = "toast " + type;
+  t.innerHTML = (type==="success" ? "✓ " : "✕ ") + msg;
+  w.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// CREDITS
+function updateCredits(val) {
+  document.getElementById("credits-display").textContent = val;
+  document.getElementById("credits-top").textContent = val;
+}
+
+// DOWNLOAD
+function downloadImage(imgId, filename) {
+  const img = document.getElementById(imgId);
+  if (!img || !img.src) return;
+  const a = document.createElement("a");
+  a.href = img.src;
+  a.download = filename;
+  a.click();
+}
+
+// TEXT TO IMAGE
+async function generateImage() {
+  const prompt = document.getElementById("t2i-prompt").value.trim();
+  if (!prompt) { toast("Please enter a prompt", "error"); return; }
+  const btn = document.getElementById("t2i-btn");
+  btn.disabled = true;
+  document.getElementById("t2i-result-card").style.display = "block";
+  document.getElementById("t2i-loading").style.display = "flex";
+  document.getElementById("t2i-output").style.display = "none";
+  document.getElementById("t2i-error").style.display = "none";
+  try {
+    const body = new URLSearchParams();
+    body.append("prompt", prompt);
+    const res = await fetch("/api/image/generate", { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      document.getElementById("t2i-img").src = url;
+      document.getElementById("t2i-output").style.display = "block";
+      const cur = parseInt(document.getElementById("credits-display").textContent);
+      if (!isNaN(cur) && cur > 0) updateCredits(cur - 1);
+      toast("Image generated successfully!");
+    } else if (res.status === 400) {
+      const err = await res.text();
+      document.getElementById("t2i-error").textContent = err;
+      document.getElementById("t2i-error").style.display = "block";
+      toast(err, "error");
+    } else {
+      toast("Generation failed. Please try again.", "error");
+    }
+  } catch(e) { toast("An error occurred. Check your connection.", "error"); }
+  finally {
+    document.getElementById("t2i-loading").style.display = "none";
+    btn.disabled = false;
+  }
+}
+
+// BG REMOVE
+function handleBgrUpload(inp) {
+  if (!inp.files[0]) return;
+  document.getElementById("bgr-fname").textContent = inp.files[0].name;
+}
+async function removeBackground() {
+  const file = document.getElementById("bgr-file").files[0];
+  if (!file) { toast("Please upload an image first", "error"); return; }
+  document.getElementById("bgr-result-wrap").style.display = "block";
+  document.getElementById("bgr-loading").style.display = "flex";
+  document.getElementById("bgr-output").style.display = "none";
+  document.getElementById("bgr-orig-img").src = URL.createObjectURL(file);
+  const fd = new FormData();
+  fd.append("image_file", file);
+  try {
+    const res = await fetch("/api/image/remove-background", { method:"POST", body:fd });
+    if (res.ok) {
+      const blob = await res.blob();
+      document.getElementById("bgr-result-img").src = URL.createObjectURL(blob);
+      document.getElementById("bgr-output").style.display = "block";
+      const cur = parseInt(document.getElementById("credits-display").textContent);
+      if (!isNaN(cur) && cur > 0) updateCredits(cur - 1);
+      toast("Background removed!");
+    } else { toast("Failed to remove background", "error"); }
+  } catch(e) { toast("An error occurred", "error"); }
+  finally { document.getElementById("bgr-loading").style.display = "none"; }
+}
+
+// BG REPLACE
+function previewBgp(inp, previewId) {
+  if (!inp.files[0]) return;
+  const url = URL.createObjectURL(inp.files[0]);
+  const prev = document.getElementById(previewId);
+  prev.src = url; prev.style.display = "block";
+  const fname = previewId === "bgp-orig-preview" ? "bgp-fname-orig" : "bgp-fname-new";
+  document.getElementById(fname).textContent = inp.files[0].name;
+}
+async function replaceBackground() {
+  const origFile = document.getElementById("bgp-file-orig").files[0];
+  if (!origFile) { toast("Please upload the original image", "error"); return; }
+  const newBgFile = document.getElementById("bgp-file-new").files[0];
+  const prompt = document.getElementById("bgp-prompt").value.trim();
+  if (!newBgFile && !prompt) { toast("Upload a background image or enter a prompt", "error"); return; }
+  document.getElementById("bgp-result-wrap").style.display = "block";
+  document.getElementById("bgp-loading").style.display = "flex";
+  document.getElementById("bgp-output").style.display = "none";
+  document.getElementById("bgp-ba-orig").src = URL.createObjectURL(origFile);
+  const fd = new FormData();
+  fd.append("image_file", origFile);
+  if (newBgFile) fd.append("bg_image_file", newBgFile);
+  if (prompt) fd.append("bg_prompt", prompt);
+  try {
+    const res = await fetch("/api/image/replace-background", { method:"POST", body:fd });
+    if (res.ok) {
+      const blob = await res.blob();
+      document.getElementById("bgp-result-img").src = URL.createObjectURL(blob);
+      document.getElementById("bgp-output").style.display = "block";
+      const cur = parseInt(document.getElementById("credits-display").textContent);
+      if (!isNaN(cur) && cur > 0) updateCredits(cur - 1);
+      toast("Background replaced!");
+    } else { toast("Failed to replace background", "error"); }
+  } catch(e) { toast("An error occurred", "error"); }
+  finally { document.getElementById("bgp-loading").style.display = "none"; }
+}
+
+// SKETCH TO IMAGE
+function handleSketchUpload(inp) {
+  if (!inp.files[0]) return;
+  const url = URL.createObjectURL(inp.files[0]);
+  document.getElementById("sk-preview").src = url;
+  document.getElementById("sk-preview").style.display = "block";
+  document.getElementById("sk-fname").textContent = inp.files[0].name;
+}
+async function sketchToImage() {
+  const file = document.getElementById("sk-file").files[0];
+  const prompt = document.getElementById("sk-prompt").value.trim();
+  if (!file) { toast("Please upload a sketch first", "error"); return; }
+  if (!prompt) { toast("Please describe the style", "error"); return; }
+  document.getElementById("sk-result-wrap").style.display = "block";
+  document.getElementById("sk-loading").style.display = "flex";
+  document.getElementById("sk-output").style.display = "none";
+  document.getElementById("sk-orig-img").src = URL.createObjectURL(file);
+  const fd = new FormData();
+  fd.append("sketch_file", file);
+  fd.append("prompt", prompt);
+  try {
+    const res = await fetch("/api/image/sketch-to-image", { method:"POST", body:fd });
+    if (res.ok) {
+      const blob = await res.blob();
+      document.getElementById("sk-result-img").src = URL.createObjectURL(blob);
+      document.getElementById("sk-output").style.display = "block";
+      const cur = parseInt(document.getElementById("credits-display").textContent);
+      if (!isNaN(cur) && cur > 0) updateCredits(cur - 1);
+      toast("Sketch rendered!");
+    } else { toast("Failed to render sketch", "error"); }
+  } catch(e) { toast("An error occurred", "error"); }
+  finally { document.getElementById("sk-loading").style.display = "none"; }
+}
+
+// Mobile
+if (window.innerWidth < 800) document.getElementById("menu-btn").style.display = "flex";
+</script>
 </body>
 </html>
