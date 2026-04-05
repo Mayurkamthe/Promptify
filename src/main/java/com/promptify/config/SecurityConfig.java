@@ -21,7 +21,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity security) throws Exception {
     	
-    	System.out.println(passwordEncoder().encode("password123"));
+    	
         return security
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
